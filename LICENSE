@@ -1,0 +1,35 @@
+MIT License
+
+Copyright (c) 2026 Paing Hein Htet, Radin Moradi, Sina Ahani, Andy Kaca
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+This licence covers the code in this repository only.
+
+data/stability.txt is the NetMHCstabpan stability dataset of Rasmussen et al.,
+J Immunol 2016;197(4):1517-24, doi:10.4049/jimmunol.1600582. It is redistributed
+here under the terms of its original publication and is not ours to relicense.
+
+site/3gsn.pdb.txt and site/3vri.pdb.txt are coordinates from the RCSB Protein
+Data Bank and belong to their depositors.
+
+Sponsor and event artwork in site/ belongs to the respective organisations and
+to the hackathon organisers, and appears here only as event credit.

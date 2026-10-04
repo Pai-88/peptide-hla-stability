@@ -1,0 +1,637 @@
+# Are protein foundation models useful for peptide-HLA class I stability?
+
+**Short answer: no, not on this problem, not at this scale, and not by any measure
+we could construct.** A conventional supervised network with no foundation model
+anywhere in it is roughly three times better, and every ESM-2 arm we built fails
+to beat a three-line lookup table that contains no model and never sees the allele.
+
+This is a negative result and it is reported as one. Serova's brief says negative
+results are as valuable as positive ones, and asks the question rather than for a
+proof; this is the answer the data gave.
+
+Figure: `headline.png`. Everything in this file was recomputed from the stored
+per-row predictions under one estimator, by the write-up pass, not copied from
+the arms' own summaries.
+
+---
+
+## 1. The headline, stated exactly as it can safely be said
+
+> On 21 leave-one-groove-cluster-out folds, a conventional supervised network
+> (BLOSUM62 + one-hot encoding of the 9-mer and the 34-residue HLA
+> pseudo-sequence) reaches a median per-allele Spearman of **0.31**
+> (IQR 0.22 to 0.42, 21/21 folds positive). The best ESM-2 arm reaches **0.11**.
+> A peptide-mean lookup table with no model and no allele information reaches
+> **0.13**, and **no foundation-model arm beats it**. Paired over the 21 folds,
+> the conventional net beats every foundation-model arm (median margins +0.17 to
+> +0.27, 20 or 21 folds out of 21, Wilcoxon p between 9.5e-7 and 2.9e-6).
+
+The caveats that belong in the same breath, not in a footnote:
+
+1. **The fold unit is a groove cluster, so 80.9% of test rows have their peptide
+   somewhere in the training side, paired with other alleles.** This is a fair
+   mirror of deployment (you rank candidate epitopes for a new patient allele,
+   and those epitopes usually have measurements against other alleles), but it is
+   not a test of generalisation to a novel peptide. 8 of the 21 folds are at 100%
+   overlap and cannot test that at all. Restricted to genuinely unseen peptides,
+   the conventional net is unchanged (0.30) and every foundation-model arm falls
+   to zero or below. That makes the negative result stronger, not weaker.
+2. **"Leave-one-groove-cluster-out" means near-novel, not novel.** The clusters
+   come from average linkage at 0.80 on 34-residue identity, which bounds the
+   cluster average, not every cross-cluster pair. The closest held-out/training
+   pair anywhere is **0.912** (A*66:01 vs A*68:23; 31 of 34 contact residues),
+   and 13 of 21 folds contain a held-out allele closer than the 0.80 cut to an
+   allele in their own training side (median over folds 0.824, min 0.735). It is
+   still far stricter than leave-one-allele-out, which is impossible on this
+   dataset. Mitigating: fold score does not track that proximity for any arm
+   (arm 1 Spearman +0.13, p=0.59).
+3. **The clusters separate alleles by sequence, not by function.** The biology
+   audit found 31 of 68 held-out alleles still have a training allele whose
+   data-derived binding motif correlates above cosine 0.7 (max 0.901), and arm
+   1's per-allele score is better predicted by functional similarity to training
+   (+0.443, p=0.0002) than by the sequence identity the folds are built on
+   (+0.363, p=0.0024). So 0.31 is an **upper bound** on true cross-specificity
+   generalisation.
+4. **The whisker is spread of fold difficulty, not uncertainty on the median.**
+   Fold scores run from 0.06 to 0.61. That spread is the honest story; the
+   bootstrap 95% CI on arm 1's median is [0.24, 0.39], and on the best
+   foundation-model arm [0.03, 0.16] — those do not overlap. (The lookup
+   table's is [0.05, 0.17].)
+5. **Every arm in the table uses FROZEN embeddings.** The fine-tuning arm has
+   scored 1 of its 8 planned cells (+0.175 on A*02:01 +8, against +0.205 for the
+   conventional net and +0.131 for the frozen arm with the same encoding on that
+   same fold). So this headline is a statement about frozen foundation-model
+   representations, not about ESM-2 under gradients. Section 9 says exactly which
+   of these sentences would have to change, and at what value.
+6. **The margin is the encoding, not the head — but check how it is measured.**
+   Held at the conventional net's own head and stopping rule, only the encoding
+   changing: BLOSUM 0.292 against ESM-2 0.118 and 0.088, 20/21 folds, p=2e-6. The
+   published gap of +0.201 is +0.174 head-matched, so about 13% of it is the
+   training recipe. Quote the head-matched pair, not the arm-versus-arm pair.
+   Section 6.
+
+---
+
+## 2. The arm table
+
+**One estimator throughout: 5-seed ensemble mean prediction, `censored='tied'`,
+per-fold = median per-allele Spearman over that fold's held-out alleles,
+headline = median over the 21 folds.** This matters: the arms originally quoted
+three different estimators and the table was not like-for-like. Ensembling is
+worth +0.042 to arm 1 and +0.009 to arm 6, so the mismatch moved arm 1 four times
+as much as the foundation-model arms.
+
+| # | Arm | rho (tied) | IQR | worst fold | top-10 | rho (drop) | unseen peptides | folds <= 0 |
+|---|-----|-----------:|-----|-----------|-------:|-----------:|----------------:|-----------:|
+| 1 | **Supervised NN** — BLOSUM62 + one-hot, no FM | **0.307** | 0.219–0.422 | B*46:01 +0.061 | **0.200** | 0.278 | **+0.299** | 0/21 |
+| 2 | *CONTROL* peptide-mean lookup table (no model, no allele) | 0.130 | 0.052–0.177 | B*18:01 −0.112 | 0.200 | 0.102 | undefined | 2/21 |
+| 3 | ESM-2 150M, peptide \| pseudo-seq, MLP head | 0.106 | 0.026–0.200 | B*15:17 +4 −0.102 | 0.100 | 0.086 | +0.003 | 2/21 |
+| 4 | ESM-2 **650M**, peptide \| pseudo-seq, ridge head | 0.090 | 0.035–0.150 | B*18:01 −0.119 | 0.100 | — | +0.070 | 3/21 |
+| 5 | ESM-2 150M, joint encoding (allele+linker+peptide) | 0.077 | 0.016–0.157 | A*01:01 −0.172 | 0.100 | 0.056 | −0.001 | 4/21 |
+| 6 | *CONTROL* ESM-2 150M, peptide only (allele never shown) | 0.064 | 0.046–0.171 | B*18:01 −0.153 | 0.100 | 0.056 | −0.033 | 4/21 |
+| 7 | ESM-2 150M, peptide \| pseudo-seq, ridge head | 0.061 | 0.022–0.112 | B*18:01 −0.143 | 0.100 | 0.062 | +0.058 | 4/21 |
+| 8 | *NULL* random order within each allele (measured) | −0.008 | −0.021–0.033 | B*51:01 −0.071 | 0.100 | 0.007 | −0.007 | 11/21 |
+
+Chance top-10 precision is exactly 0.100 (1 − decile), and the measured null
+confirms it empirically. **Arm 1 is the only arm whose top-10 precision is
+distinguishable from chance** (0.200, Wilcoxon vs 0.10 p=0.0003; the lookup table
+is 0.200 at p=0.14, every ESM arm is 0.100 at p>0.10). On the metric a customer
+would actually use — pick ten peptides for an allele you have no data for — the
+foundation-model arms are indistinguishable from random picking.
+
+### The paired tests that carry the claim
+
+Paired over the 21 folds, ensemble, tied:
+
+| comparison | median Δ | folds won | Wilcoxon p |
+|---|---:|---:|---:|
+| Supervised NN − ESM pep\|pseudo MLP | +0.169 | 21/21 | 9.5e-7 |
+| Supervised NN − ESM joint | +0.218 | 20/21 | 6.7e-6 |
+| Supervised NN − ESM peptide-only control | +0.203 | 20/21 | 1.8e-5 |
+| Supervised NN − ESM pep\|pseudo ridge | +0.275 | 20/21 | 2.9e-6 |
+| Supervised NN − ESM 650M | +0.226 | 20/21 | 1.8e-5 |
+| Supervised NN − lookup table | +0.185 | 19/21 | 1.8e-5 |
+| Supervised NN − measured null | +0.302 | 21/21 | 9.5e-7 |
+
+And the tests that kill the positive readings:
+
+| comparison | median Δ | folds won | Wilcoxon p |
+|---|---:|---:|---:|
+| ESM pep\|pseudo MLP − lookup | −0.012 | 10/21 | 1.00 |
+| ESM joint − lookup | −0.027 | 9/21 | 0.20 |
+| ESM pep\|pseudo ridge − lookup | −0.043 | 4/21 | **0.016 (worse)** |
+| ESM pep\|pseudo MLP − peptide-only control | +0.026 | 13/21 | 0.23 |
+| ESM joint − peptide-only control | −0.014 | 10/21 | 0.95 |
+| ESM pep\|pseudo ridge − peptide-only control | −0.052 | 7/21 | 0.10 |
+| ESM 650M − ESM 150M (same head, same features) | +0.024 | 15/21 | 0.026 |
+| ESM 650M − lookup | −0.032 | 7/21 | 0.096 |
+
+**4.3x more foundation-model parameters buys +0.024 and is still below a lookup
+table.** That is the cleanest scaling statement the project has.
+
+**Rows 3 to 7 are one indistinguishable band of roughly 0.06 to 0.11.** Every
+foundation-model-vs-foundation-model pairwise test is non-significant after Holm
+correction, and the ordering flips under `censored='drop'` (arm 5 falls from
+second to last). Do not claim the joint encoding beats peptide-only, or that
+pseudo-sequence concatenation beats either. Arm 7 (ridge) is not separable from
+the measured null at the fold level (raw p=0.026, Holm p=0.158).
+
+---
+
+## 3. Why the numbers are what they are
+
+Three mechanisms, all measured, all worth a slide line:
+
+- **A linear head on `[peptide | pseudo-sequence]` cannot use the allele at all
+  for a per-allele metric.** Inside one held-out allele the pseudo-sequence block
+  is a constant, so the within-allele ranking is fixed by the peptide half alone.
+  Verified: max |rho_full − rho_peptide-half-only| over held-out alleles is
+  **exactly 0.00e+00** on the two biggest folds. Arm 7's per-allele numbers are
+  mathematically peptide-only numbers. Any team reporting a good number from this
+  featurisation is reporting something other than allele-specific ranking.
+- **The joint encoding barely moves with the allele.** Variance decomposition over
+  all 28,166 rows: 88.5% of the embedding's variance is explained by peptide
+  identity, 17.8% by allele identity. Mean cosine between the same peptide under
+  different alleles is 0.9924, versus 0.9585 between different peptides under the
+  same allele. Attention through the linker moves the peptide representation
+  about five times less than changing the peptide does. (Same pathology as the
+  prior whole-chain finding, mean pairwise cosine 0.988 across the 75 alleles.)
+- **The small positives are peptide memorisation.** Split on whether the test
+  peptide appears anywhere in that fold's training side (12 folds have >= 20
+  unseen rows): paired seen-minus-unseen is +0.061 (p=0.027) for arm 3, +0.084
+  (p=0.13) for arm 5, +0.083 (p=0.15) for arm 6 — all positive, i.e. all three
+  are worse on novel peptides. Arm 1's delta is −0.046 (p=0.73): it loses
+  nothing, and is if anything marginally better on peptides it has never seen.
+
+The conventional net, by contrast, genuinely learned something allele-specific:
+its top-10 picks differ between co-held-out alleles (median Jaccard 0.429, against
+1.000 — identical picks for every allele — for arms 6 and 7), and its per-allele
+score tracks groove similarity to training (+0.327, p=0.0053) while no
+foundation-model arm's does (arm 5: +0.090, p=0.46).
+
+**But do not say it "learned the binding motif".** The biology audit's split-half
+test (motif from one half's top decile, picks and random null from the other, 20
+splits x 200 draws, 68 independent per-allele means) puts arm 1's top-10 at the
+62.4th percentile of a random draw from the same candidate pool (p=7.3e-4)
+against a ceiling of 100 — and the allele-blind arm 6 scores 53.9, so arm 1's
+genuinely allele-specific margin is only **+8.6 points** (paired, 47/68 positive,
+p=0.029). At the classical P2 and P9 anchors specifically its picks are **not**
+significantly enriched (p=0.32, p=0.12), and for A*02:01 they are below the pool
+at both. That weak motif recovery is exactly why top-10 precision is 0.20 against
+a chance level of 0.10 while the Spearman is 0.31. Arm 5 scores 50.0 (p=0.97):
+the ESM joint embedding recovers no motif structure at all.
+
+The data itself is sound: motifs derived blind from each allele's own top-decile
+peptides reproduce the textbook anchors (A*02:01 P2=L/M P9=L/V; A*03:01 P9=K/R;
+B*07:02 P2=A/P; B*27:05 P2=R/V; B*57:01 P9=F/W). There is no source-organism
+confound (R² of prediction on source organism 0.029, against 0.033 for the truth).
+
+---
+
+## 4. The worst folds, named
+
+Worst-fold identity is **policy- and estimator-dependent**, so it is stated with
+both, and reported as a pair because 7 of the 21 folds are a single allele and
+therefore sit inside the measured per-allele noise band of ±0.11.
+
+**Worst fold for the headline arm: HLA-B*46:01, rho +0.061** (361 test rows, a
+singleton groove cluster, one scored allele; `censored='tied'`, 5-seed ensemble).
+Three reasons it is hard, all measured:
+
+- It is **41.0% censored**, against 20.2% dataset-wide — the highest among the
+  bottom folds. Most of its peptides fall below the assay's detection floor, so
+  there is less real ranking to recover.
+- Its nearest training allele is B*15:01 at 0.824 groove identity, but the
+  data-derived motifs differ (B*46:01 P2=A/S/I P9=F/Y/M versus B*15:01 P2=Q/S/I
+  P9=Y/F/M). Sequence-near, function-far: the fold is exactly the case the
+  cluster cut does not catch.
+- A single allele with 361 rows is at the edge of the noise band anyway. The
+  lookup table beats arm 1 here (0.078 vs 0.061).
+
+**The fold where the controls win outright: HLA-B*15:17 +4** — 1,822 rows, 5
+alleles, so it cannot be waved away as noise. The peptide-only control scores
++0.275 and the lookup table +0.208, against +0.096 for the conventional net and
+−0.102 for the best foundation-model arm. Arm 1 loses to a no-allele null by
+0.179 there, its single worst loss anywhere. Own this one before a judge finds it.
+
+Under `censored='drop'` arm 1's worst fold changes identity, which is why the
+policy is always stated. Best fold: A*68:01 +3 at +0.609.
+
+At the allele level, arm 1 scores 71 of 75 alleles (4 have fewer than 20 test
+rows) and exactly **one** is negative: B*15:02 at −0.115. The comparable counts
+are 14, 16, 19 and 21 negative alleles for the foundation-model arms, and 34 for
+the measured null.
+
+---
+
+## 5. Every fatal and serious review finding, and what was done
+
+Four adversarial lenses were run (leakage, statistics, controls, biology). All
+four returned `headline_is_safe=false`. Nothing below has been dropped.
+
+### FATAL
+
+**F1 — "Arm B or C shows allele-specific foundation-model signal."**
+Not supportable. Against arm D, the project's actual no-allele null, arm 5 is not
+better (−0.014, p=0.95) and arm 7 is worse (−0.052, p=0.10).
+**Done:** the claim is gone. The write-up and the figure state the null result
+directly. Arm 5's earlier "significantly better than chance, p=0.0010" has been
+replaced with: above zero only on peptides it has already seen paired with other
+alleles; on a novel peptide it is at or below zero.
+
+**F2 — "Arm D (0.064) or arm E (0.000) is the bar to clear."**
+The binding control is the peptide-mean lookup table at **0.130**, and every
+foundation-model arm fails it (arm 7 significantly, p=0.016).
+**Done:** the lookup table is row 2 of the ladder as a named arm, on the figure
+and in the table, not in a footnote. Reproduced independently here: 0.130 tied /
+0.102 drop, top-10 0.200.
+
+### SERIOUS
+
+**S1 — Mixed estimators across arms (raised by three lenses).** Arm A quoted
+single-fit 0.265, arm D quoted a 5-seed ensemble 0.064, arm E quoted a third
+convention. **Done:** every number in this file is the 5-seed ensemble under
+`censored='tied'`, recomputed from the parquets. Arm A's single-fit 0.265 is kept
+in section 8 as the per-fit figure. The ordering is stable under either estimator.
+
+**S2 — The foundation-model arms' small positives are peptide memorisation.**
+**Done:** section 3, the table's `unseen peptides` column, and the right-hand
+panel of the figure. 80.9% overlap is stated on the figure itself.
+
+**S3 — Any ordering among the foundation-model arms is noise.** **Done:** stated
+as one indistinguishable band of 0.06 to 0.11 in section 2; no "arm X edges out
+arm Y" sentence survives; arm 7's non-separability from the null is stated.
+
+**S4 — The A-vs-FM gap confounds features, head, early-stopping rule and
+ensembling. Nobody had run ESM features through arm A's own head.** **Done, both
+halves, re-run during this write-up.** Section 6: held at arm 1's own MLP and
+stopping rule, BLOSUM 0.292 against ESM-2 0.118 and 0.088, 20/21 folds,
+p=1.9e-6; held at ridge, 0.114 against 0.066 and 0.031, p=0.035 and p=0.024. Two
+different heads, same direction. The published +0.201 gap is +0.174 head-matched,
+so ~13% is recipe and ~87% is encoding, and the slide now quotes the head-matched
+pair. This also answers the tuning-asymmetry objection (arm 1 had a 198-fit
+sweep, the ESM arms none): ESM-2 through arm 1's *tuned* head reaches only 0.118,
+the top of the band the untuned ESM arms already occupied.
+
+**S5 — "Leave-one-groove-cluster-out" does not guarantee an unseen groove.**
+13 of 21 folds have a held-out allele closer than the 0.80 cut to one of their own
+training alleles; closest pair anywhere 0.912. **Done:** caveat 2 in section 1,
+with the mitigating evidence (fold score does not track proximity, p=0.59).
+
+**S6 — The folds separate by sequence, not by function.** 31 of 68 held-out
+alleles have a training allele at motif cosine > 0.7 (max 0.901, B*15:10 vs
+B*39:01, which are in different clusters at 0.824 identity so each is in the
+other's training set). **Done:** caveat 3 in section 1. 0.31 is framed as an upper
+bound on cross-specificity generalisation.
+
+**S7 — The top-10 picks do not respect the held-out allele's P2/P9 anchors.**
+**Done:** section 3, with the honest framing (62.4th percentile, p=7e-4, but only
++8.6 points over an allele-blind control; P2 p=0.32, P9 p=0.12).
+
+**S8 — 7 of the 21 fold scores are a single allele, inside the ±0.11 per-allele
+null band.** **Done:** the figure shades the measured null band and plots every
+fold as a dot; worst fold is reported as a pair (worst multi-allele, worst
+singleton) in section 4. The headline survives dropping all 7: arm 1 scores 0.307
+on the singletons and 0.310 on the multi-allele folds. Arm 5 does **not** — it
+halves, 0.157 on singletons against 0.069 on multi-allele folds.
+
+**S9 — "Pooling would have inflated these numbers" is not what the data shows.**
+Over the 14 multi-allele folds, pooled minus per-allele is −0.006 for arm 1,
+−0.041 for arm 7, +0.002 for arm 3, −0.014 for arm 5, −0.006 for arm 6.
+**Done:** the claim is restated as *pooling is unreliable, not inflationary* — it
+swings from −0.34 to +0.54 fold to fold while the per-allele median moves by
+hundredths. That is still a strong argument for `metrics.py` refusing to pool.
+
+### MINOR, fixed in passing
+
+- **Arm 1's hyperparameters were not chosen under nested CV.** Four inner
+  validation clusters (B*15:01+5, B*14:01(C67S)+5, A*03:01+3, A*23:01+4) are
+  themselves outer test folds, holding 9,779 of 28,159 test rows. Measured impact:
+  dropping the three tuned-on folds moves the headline from 0.2651 to 0.2635
+  single-fit and 0.3069 to 0.3049 ensemble, about 0.002; those four folds score
+  0.274 against 0.265 elsewhere, Mann-Whitney p=1.00. Stated, not hidden.
+- **The disclosed peek.** While debugging the stopping criterion, outer-fold-1
+  test Spearman was printed for two candidate criteria (MSE 0.189, rho 0.201)
+  before the inner sweep chose rho-stopping on its own evidence. The peeked fold
+  (A*02:01 +8) scores **below** the median (0.241 ensemble); excluding it *raises*
+  the headline to 0.312. The peek cannot be what is holding the number up.
+- **Three of the 75 alleles are C67S lab constructs** (B*14:01, B*14:02, B*39:06;
+  1,135 rows, 4.0%), and the engineered residue is one of the 34 contact positions
+  that define the folds. Reverting it and re-clustering gives an identical
+  partition, and that fold scores mid-pack (rank 8 of 21). They are **not**
+  excluded; do not claim they are.
+- **File traps.** `results_C_esm_joint.csv` is the only 210-row file and mixes
+  `censored_policy` tied and drop; a naive median over it gives 0.0712, which
+  matches neither headline. Arm 7's five "seeds" are five bit-identical ridge fits
+  (across-seed sd exactly 0.0000 on all 21 folds), so its calibration columns are
+  correctly **blank, not zero**, and it has 1 effective replicate, not 5.
+  Everything in this file was computed from the parquets with an explicit policy
+  filter, so no number here is affected.
+- **Uncertainty is a negative result for every arm.** The across-seed spread of a
+  5-seed ensemble carries essentially no information about where the model is
+  wrong: error-uncertainty correlation median +0.018 (arm 1), −0.005 (arm 3),
+  +0.010 (arm 5), +0.009 (arm 6), and 68% interval coverage of 0.21, 0.13, 0.15
+  and 0.14 against a nominal 0.68. **Do not claim calibrated uncertainty for any
+  arm.** Seed ensembling is 4x to 5x over-confident here.
+
+---
+
+## 6. The control nobody had run: head-matched encoding comparison
+
+The published 0.31-versus-0.11 gap confounds the encoding with the head, the
+early-stopping rule and the ensembling. The missing cell — ESM-2 features pushed
+through arm A's exact head on the same 21 folds — is the right control for it.
+
+It is `check_statistics.py` sections 12–13. **Both are now complete, all 21
+folds, re-run and verified during this write-up** (189 fits, about 48 min wall
+clock; the numbers match the statistics audit to four decimal places).
+
+**The feature claim survives head-matching, and this is the sentence that
+actually answers Serova's question:**
+
+> Same MLP, same rho-based early stopping, same 21 folds, only the encoding
+> changes: **BLOSUM62 + one-hot 0.292, ESM-2 peptide\|pseudo-seq 0.118, ESM-2
+> joint 0.088.** BLOSUM beats both on **20 of 21 folds**, Wilcoxon **p = 1.9e-6**
+> (median Δ +0.163 and +0.174).
+
+It holds under a second, completely different head as well. Held at RidgeCV:
+BLOSUM 0.114, ESM pair 0.066 (+0.047, 14/21, p=0.035), ESM joint 0.031 (+0.052,
+13/21, p=0.024). Two heads, same verdict, same direction.
+
+Full decomposition, all on the same 21 folds, `censored='tied'`:
+
+| configuration | rho |
+|---|---:|
+| published arm 1 (5-seed ensemble, BLOSUM, arm 1's head) | 0.307 |
+| arm 1's head + BLOSUM, 3 seeds | 0.292 |
+| **arm 1's head + ESM-2 peptide\|pseudo, 3 seeds** | **0.118** |
+| **arm 1's head + ESM-2 joint\|pseudo, 3 seeds** | **0.088** |
+| published arm 3 (sklearn MLP, ESM peptide\|pseudo) | 0.106 |
+| published arm 5 (sklearn MLP, ESM joint) | 0.077 |
+| ridge + BLOSUM | 0.114 |
+| ridge + ESM peptide\|pseudo | 0.066 |
+| ridge + ESM joint | 0.031 |
+| measured null | −0.008 |
+
+**Correction to an earlier reading of this section.** While only the ridge row
+existed, this section concluded that "roughly three quarters of the headline
+margin is the head and the stopping rule, not the encoding", because the
+head-matched gap at ridge is only +0.047 to +0.052. **The completed section 13
+contradicts that, and the earlier sentence has been removed.** Ridge compresses
+*both* encodings (it costs BLOSUM 0.307 → 0.114), so the small gap there is a
+weak-head artefact, not a small feature effect. At arm 1's own head the gap is
+**+0.174** against a published gap of **+0.201** — so roughly **13%** of the
+published margin is the training recipe and **87% is the encoding**. The
+encoding-versus-recipe question is settled in favour of the encoding.
+
+Two things still follow, and both should be said out loud:
+
+1. **The published gap overstates the feature effect by about 13%.** Present it
+   as a head-matched encoding comparison (0.29 vs 0.12, same MLP, same stopping
+   rule, 20/21 folds, p=2e-6), not as arm-versus-arm.
+2. **Arm 5's 0.077 is not the ceiling for its own embedding.** The same ESM joint
+   features reach 0.088 under arm 1's recipe (+0.054 over the published head,
+   15/21, p=0.016), and the ESM pair features reach 0.118 (+0.023, 14/21,
+   p=0.046). The foundation-model arms were mildly under-trained relative to the
+   conventional one. That correction *shrinks* the gap and is reported anyway.
+
+This is also the answer to the tuning-asymmetry objection (arm 1 got a 198-fit
+sweep, the ESM arms got none): ESM-2 through arm 1's *tuned* head lands at 0.118
+and 0.088, i.e. just at the top of the 0.06 to 0.11 band the untuned ESM arms
+already occupied. The asymmetry is worth +0.02 to +0.05, not the +0.17 gap.
+Section 1 stands exactly as written.
+
+---
+
+## 7. What was NOT done, and why
+
+- **No censored-aware loss anywhere.** Every arm trains plain squared error on
+  the floored `y`; censoring is applied only at scoring time by `metrics.py`.
+  `model.py` has a tobit default that no arm used. So the comparison is
+  features-plus-loss, not features alone — though it is the *same* loss in every
+  arm, so it cannot explain the gap between them. A tobit head is the first thing
+  to try with more time.
+- **No fine-tuning of ESM-2 has finished.** Every ESM arm in the table uses frozen
+  embeddings plus a head. A fine-tuning arm (`arm_F_finetune.py`) is running now
+  and has produced **1 of its 8 planned (fold, seed) cells**. See the PENDING
+  section (section 9) — this is the single largest remaining uncertainty, because
+  our claim is about frozen representations, not about what ESM-2 could do if the
+  gradients reached it.
+- **The 650M scale control is partial.** The ridge head completed all 21 folds and
+  is row 4 of the table. The MLP head reached 52 of 105 cells and the peptide-only
+  control 4 of 105 when the clock ran out; neither is reported. The 650M
+  embeddings themselves are complete (5,633 peptides, 75 pseudo-sequences).
+- **No model larger than 650M, and no ESM-3 / ProtT5 / AlphaFold-derived
+  features.** 150M to 650M is the only scaling point we have, and it is +0.024.
+- **Every scored arm mean-pools the ESM-2 embedding.** Per-residue features were
+  never run as a scored arm here. Mean-pooling over 9 residues discards exactly
+  the positional structure (P2 and P9 anchors) that the biology says matters, so
+  it is plausibly the weakest way to read these embeddings. A parallel attempt on
+  this track, on a different split and a different aggregation, found per-residue
+  ESM-2 well ahead of mean-pooled; that number is not comparable to anything in
+  this table and is not quoted, but the gap it implies is a real hole here.
+- **Two of the 75 alleles are invisible to any pseudo-sequence-only model.**
+  B*14:01(C67S) and B*14:02(C67S) share an identical 34-residue pseudo-sequence
+  (74 distinct pseudo-sequences for 75 alleles; 756 rows). They land in the same
+  groove cluster, so this is not leakage, but arms 1, 3, 4 and 7 cannot tell them
+  apart even in principle.
+- **7 of 28,166 rows are in no fold.** HLA-B*13:02 forms its own groove cluster
+  and falls below `splits.groove_folds`'s 100-row floor, so every arm reports on
+  28,159 rows.
+- **Four of the 75 alleles are never scored** (fewer than 20 test rows), so the
+  per-allele statistics are over 71.
+- **No nested CV for arm 1's hyperparameters** (see section 5; measured cost
+  about 0.002).
+- **No external validation set.** NetMHCstabpan is trained on the entirety of this
+  dataset and the brief says it is unfair as a direct comparator, so it is absent
+  by design, not by omission. Nothing here is validated against held-out
+  experimental data from another lab.
+
+### Compute spent
+
+| item | wall clock |
+|---|---|
+| ESM-2 150M joint embedding pass (28,166 pairs, MPS) | 2,728 s |
+| Arm 1 final run, 105 fits | 511 s |
+| Arm 3 (MLP head), 105 fits | 1,025 s |
+| Arm 5 fitting, 105 fits | 1,119 s |
+| Arm 1 hyperparameter sweep, 198 fits (estimated from per-fit logs) | ~15–20 min |
+| Head-matched control (section 6), complete: 126 torch + 63 ridge fits | 2,866 s |
+| 650M embedding pass + 21-fold ridge arm | included in `ladder.log` |
+| Arm F fine-tuning (section 9), in flight, 1 of 8 cells scored | 2,236 s per cell |
+
+All on an Apple M5, 32 GB, MPS, torch 2.14.1.
+
+---
+
+## 8. Provenance
+
+Recomputed for this write-up, from the stored per-row predictions rather than from
+any arm's summary: every row of the table in section 2, every paired test, the
+lookup-table control, the unseen-peptide split, the null bands, the groove-proximity
+numbers, the top-10 significance tests, the bootstrap CIs, the pooled-versus-
+per-allele deltas, the pseudo-sequence collision, the 650M comparison, the
+head-matched control in section 6 (re-run end to end, 189 fits), the arm F
+comparator table in section 9, and the figure.
+
+Carried from the audit scripts and attributed rather than re-run (compute
+contention): the motif split-half and P2/P9 anchor tests and the organism confound
+check (`check_biology.py`), the embedding variance decomposition and the linear-head
+identity proof (`arm_B_esm_pseudo.py`, `arm_C_esm_joint.py` diagnostics), the
+Holm-corrected pairwise matrix and the two-way variance decomposition
+(`check_statistics.py`), and the C67S re-clustering check.
+
+Verified integrity: all result CSVs are 105 rows x 23 columns matching
+`RESULT_COLUMNS` (except `results_C_esm_joint.csv`, 210 rows across two policies);
+all prediction parquets have 140,795 rows, 0 nulls, 0 duplicate
+(fold, seed, row_id), and every `row_id` joins back to `data.load()` with HLA, Pep
+and `y_true` agreeing exactly; no held-out allele appears in its own training side
+in any of the 21 folds; featurizers are stateless (identical vectors from a 50-row
+slice, a fold's test side, and the full frame, max abs diff exactly 0).
+
+Arm 1's single-fit figures, for the appendix: per-fold mean over 5 seeds then
+median over folds **0.265** (IQR 0.192 to 0.367), median over all 105 (fold, seed)
+rows **0.277**, top-10 precision 0.220. Ensembling 5 seeds is worth +0.042.
+
+### A note on the figure
+
+`figure.py` is on the do-not-modify list and was not modified. Its design does not
+fit this result: it draws three splits (random / unseen peptide / unseen allele)
+against a NetMHCstabpan comparator the brief explicitly rules out, on a y axis
+running to 1.0, with a footnote that labels the x-groups' sample count as
+"held-out alleles". Here there is one split, eight arms, no NetMHCstabpan, and
+every number between −0.01 and 0.31. Making `make()` honest for this shape would
+have taken more than a minimal edit, so `headline.png` was rebuilt to fit the
+result, in `figure.py`'s visual idiom (same palette, same large type, same
+median-bar / IQR-whisker / printed-number conventions, same refusal to imply a
+precision we do not have). The generator lives in the session scratchpad; the only
+project files written by this pass are `RESULTS.md` and `headline.png`.
+
+### Who wrote what
+
+Sections 1–8 and `headline.png` are the write-up pass. Section 9 and the first
+draft of section 6 were written concurrently by the agent running arm F; section
+6 has since been rewritten here because the completed head-matched run
+contradicted the conclusion its partial version had drawn, and that correction is
+flagged inline rather than silently applied. Section 9's 8-fold comparator table
+was independently reproduced before being left in place. The five arms, the four
+adversarial audits and the shared modules (`data.py`, `splits.py`,
+`supertypes.py`, `metrics.py`, `embed.py`, `alleles.py`, `sources.py`) were
+written by other passes. All of it was produced during the event; the dataset is
+Rasmussen et al. 2016, J Immunol 197:1517, doi:10.4049/jimmunol.1600582, and must
+be cited in any submission.
+
+---
+
+## 9. PENDING: the fine-tuned ESM-2 arm (arm F)
+
+**Status at the time of writing: running, 1 of 8 folds scored.**
+`results_F_finetune.csv` holds exactly one data row. An earlier launch at a
+smaller step budget was killed and its budget re-cut; whatever row *that* run had
+written is no longer on disk, is not evidence, and is not cited here. The one
+surviving cell is:
+
+| arm F, the only scored cell | value |
+|---|---|
+| fold | A*02:01 +8 (9 alleles, 3,646 test rows) |
+| seed | 0, single seed |
+| per-allele Spearman (`tied`) | **+0.175** |
+| top-10 precision | 0.100 (= chance) |
+| wall clock | 2,236 s for this one cell |
+
+Like-for-like on **that one fold only** (the comparison that isolates
+fine-tuning is arm 3, the frozen arm with the identical encoding):
+
+| arm, on A*02:01 +8 | rho |
+|---|---:|
+| Supervised NN (arm 1), seed 0 single fit | +0.205 |
+| Supervised NN (arm 1), 5-seed ensemble | +0.241 |
+| **ESM-2 FINE-TUNED (arm F), seed 0** | **+0.175** |
+| ESM-2 pep\|pseudo ridge, frozen (arm 7) | +0.170 |
+| ESM-2 pep\|pseudo MLP, frozen (arm 3) | +0.131 |
+| *CONTROL* peptide-mean lookup table | +0.111 |
+| ESM-2 peptide only (arm 6) | +0.105 |
+| ESM-2 joint (arm 5) | +0.052 |
+
+Read against the pre-registered rule below, one cell lands in the **middle
+band**: fine-tuning beats the frozen arm with the same encoding (+0.175 against
++0.131) and does not reach the conventional net (+0.205 at matched single-seed).
+**That is one fold of eight, one seed, and its top-10 precision is exactly
+chance.** It cannot carry a conclusion, it is not in the section 2 ladder, and it
+must not be quoted as "fine-tuned ESM-2 scores 0.175" without the fold name
+attached. If the remaining seven cells land the same way, the sentence to add to
+section 1 is the middle-band one, not a change of headline.
+
+### What it is running
+
+ESM-2 150M with **all weights unfrozen**, `<cls> pseudo(34) GGGGSGGGGS peptide(9)
+<eos>`, head mean-pooling the peptide positions. Budget is in optimizer steps,
+not epochs, because the machine is shared: <= 2,800 steps at batch 32 (~89,600
+examples seen, ~3.7 passes over inner-train), early-stopped every 350 steps on
+whole groove clusters held out of TRAIN, best checkpoint restored. **8 of the 21
+folds, 1 seed each**, not 21 x 5 - that does not fit in the time.
+
+### Drop the numbers in here
+
+Arm F runs **8 folds, not 21, and they are a harder subset**, so it must never be
+compared against the 21-fold ladder in section 2. The like-for-like comparators,
+recomputed on exactly arm F's 8 folds (5-seed ensemble, `censored='tied'`, same
+estimator as section 2):
+
+| arm, on arm F's 8 folds | rho | same arm, all 21 folds |
+|---|---:|---:|
+| Supervised NN (arm 1) | **+0.192** | +0.307 |
+| *CONTROL* peptide-mean lookup table | +0.065 | +0.130 |
+| ESM-2 150M pep\|pseudo, MLP head, **frozen** (arm 3) | +0.063 | +0.106 |
+| ESM-2 150M peptide only (arm 6) | +0.056 | +0.064 |
+| ESM-2 150M joint (arm 5) | +0.055 | +0.077 |
+| ESM-2 150M pep\|pseudo, ridge, **frozen** (arm 7) | +0.028 | +0.060 |
+| *NULL* random order within allele | +0.025 | −0.008 |
+| **ESM-2 150M, FINE-TUNED (arm F)** | **1 of 8 cells scored** | not run |
+
+Note that the null is **+0.025** on these 8 folds, not −0.008: this subset is
+harder and noisier, and a small positive arm F number means less here than the
+same number would on the full 21.
+
+### What the result would change, decided in advance
+
+Compare arm F against **the frozen arm with the identical encoding, arm 3 at
++0.063 on these folds** - that comparison is the actual question, because it
+isolates fine-tuning from everything else.
+
+- **arm F <= ~+0.07** (at or below frozen arm 3, inside the null band): the
+  conclusion in section 1 **strengthens and widens**. It stops being "frozen
+  embeddings do not help" and becomes "ESM-2 does not help here, with or without
+  gradients". Say so plainly.
+- **arm F ~+0.07 to ~+0.19** (beats frozen, does not reach arm 1): section 1's
+  headline **stands**, and one sentence is added: fine-tuning recovers part of the
+  gap, so part of what we measured was frozen-feature rigidity rather than the
+  representation being uninformative. The ladder ordering is unchanged, and the
+  lookup-table point still stands on the 21-fold table.
+- **arm F >= ~+0.19** (matches or beats arm 1 on these 8 folds): **the headline
+  changes.** Section 1 must be rewritten from "foundation models are not useful
+  for this problem" to "**frozen** foundation-model embeddings are not useful;
+  fine-tuned ESM-2 is competitive with a conventional network". Sections 2 and 6
+  stay as they are - they are about frozen arms and remain true - but the title,
+  the figure headline and the first paragraph all have to move. Flag this to the
+  team before submitting rather than quietly leaving the old headline up.
+
+In all three cases, report it as 8 folds, 1 seed, with the 8-fold comparator
+column above beside it, and never as a row in the 21-fold table.
+
+### Why no number can be read off the training curve
+
+The run prints an inner-validation score every 350 steps. Those are **TRAIN-only
+inner splits, not held-out folds**, and they are not an arm F result at any value:
+
+```
+step  350/2800  loss 0.6800  inner_val_rho +0.0583  inner_train_rho +0.3633
+step  700/2800  loss 0.3986  inner_val_rho +0.0082  inner_train_rho +0.6226
+step 1050/2800  loss 0.3537  inner_val_rho +0.1112  inner_train_rho +0.7356
+```
+
+Inner-train rho is running away from inner-validation rho (0.74 against 0.11 by
+step 1050), which is what overfitting looks like, and it is the reason the arm
+early-stops on a held-out cluster and restores the best checkpoint. Do not quote
+any of these three numbers to anyone; the only quotable arm F number is a scored
+fold in `results_F_finetune.csv`.

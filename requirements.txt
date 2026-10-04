@@ -1,0 +1,10 @@
+numpy>=2.5.3
+pandas>=3.0.6
+scipy>=1.18.1
+scikit-learn>=1.9.1
+torch>=2.14.1
+transformers>=5.18.0
+sentencepiece>=0.2.2
+matplotlib>=3.11.2
+requests>=2.34.2
+tqdm>=4.70.1

@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+
+# embedding caches, several GB, regenerable with embed.py / hf_gpu_embed.py
+*.npy
+*.parquet
+emb_cache/
+fasta_cache/
+.cache_pseudo/
+baseline_cache/
+
+# local tool state, and anything that could carry a credential
+.codex/
+.claude/
+*.env
+*.pem
+*.key
+
+*.log
+.DS_Store

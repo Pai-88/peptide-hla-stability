@@ -1,0 +1,18 @@
+check,status,detail
+splits.choose_held_out gives 21 folds,PASS,21
+fold names match arm A's stored run exactly,PASS,
+no allele appears in two folds,PASS,[]
+every fold's test rows are disjoint from its train rows,PASS,
+spec derived from a training side excludes every held-out allele,PASS,"66 train alleles, 9 held out"
+featurizing the test side does not re-derive the spec,PASS,derivations=1
+the guard FIRES when a held-out allele was in the derivation set,PASS,
+spec is identical when the HELD-OUT rows' labels are destroyed,PASS,P2<-8/9/15/21/22/23; P9<-11/19/20/22/23/28
+featurize appends exactly N_BOOK bookkeeping columns,PASS,2154 = 2152 features + 2
+the censored bookkeeping column matches data.censored exactly,PASS,
+the allele-id bookkeeping column is constant within an allele,PASS,
+predictions are bit-identical when both bookkeeping columns are scrambled,PASS,max |diff| = 0
+tobit predictions unchanged when every test censoring flag is flipped,PASS,
+the model is not just reproducing the censoring indicator,PASS,"corr(pred, censored) = -0.037"
+arm M base block is byte-identical to arm A's featurizer,PASS,"(28166, 1720) vs (28166, 1720)"
+structural-pocket features are unchanged when ALL labels are permuted,PASS,
+the label-derived pocket spec IS a function of the training labels (so it is refit per fold),PASS,P2<-8/9/15/21/22/23; P9<-11/19/20/22/23/28  vs  P2<-2/9/20/22/23/28; P9<-3/4/9/19/29/33

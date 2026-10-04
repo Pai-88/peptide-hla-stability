@@ -1,0 +1,12 @@
+arm,head,estimator,tied,top10,drop,folds
+I_pooled_D_peptide_only,ridge,single fit == 5-seed ens (deterministic),0.0682,0.1,0.034,21
+I_perres_D_peptide_only,ridge,single fit == 5-seed ens (deterministic),0.0697,0.1,0.0428,21
+I_pooled_B_pseudo,ridge,single fit == 5-seed ens (deterministic),0.0605,0.1,0.0615,21
+I_perres_B_pseudo,ridge,single fit == 5-seed ens (deterministic),0.1247,0.15,0.0918,21
+J_conv,ridge,single fit == 5-seed ens (deterministic),0.1148,0.15,0.1075,21
+J_esm,ridge,single fit == 5-seed ens (deterministic),0.0605,0.1,0.0615,21
+J_hybrid,ridge,single fit == 5-seed ens (deterministic),0.0972,0.1,0.0857,21
+J_hybrid_pr,ridge,single fit == 5-seed ens (deterministic),0.1321,0.15,0.1061,21
+I_pooled_B_pseudo_mlp,MLP (arm A hyperparams),5-seed ensemble mean,0.1433,0.1,0.1616,21
+I_perres_B_pseudo_mlp,MLP (arm A hyperparams),5-seed ensemble mean,0.1948,0.15,0.1556,21
+A_supervised_nn,MLP (arm A hyperparams),5-seed ensemble mean,0.3069,0.2,0.2778,21
