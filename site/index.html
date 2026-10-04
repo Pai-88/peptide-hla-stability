@@ -315,7 +315,7 @@ input,textarea{cursor:text}
     <span class="zoom"><button id="bLeft" aria-label="Pan left">&larr;</button><button id="bRight" aria-label="Pan right">&rarr;</button></span>
     <span class="zoom"><button id="bOut" aria-label="Zoom out">&minus;</button><button id="bIn" aria-label="Zoom in">+</button></span>
   </div>
-  <div class="key"><span><i class="sw" style="background:#B33A1A"></i>P2 and P9 anchors</span><span><i class="sw" style="background:#33332F"></i>peptide</span><span><i class="sw" style="background:#B4B4AC"></i>HLA-A*02:01</span><span><i class="sw" style="background:#76766F"></i>T cell receptor</span><span><i class="sw" style="background:#DEDED7"></i>&beta;2m</span></div>
+  <div class="key"><span><i class="sw" style="background:#B33A1A"></i>P2 and P9 anchors</span><span><i class="sw" style="background:#1F5E58"></i>peptide</span><span><i class="sw" style="background:#5B6B82"></i>HLA-A*02:01</span><span><i class="sw" style="background:#8A8578"></i>T cell receptor</span><span><i class="sw" style="background:#C9C3B8"></i>&beta;2m</span></div>
   <p class="hint">Drag to rotate &middot; swipe sideways or press <kbd>&larr;</kbd><kbd>&rarr;</kbd> to pan &middot; pinch to zoom &middot; scrolling up and down moves the page</p>
   <div class="note">
     <h4>This is a template, not a predicted structure</h4>
@@ -382,7 +382,7 @@ input,textarea{cursor:text}
     <span class="zoom"><button id="abLeft" aria-label="Pan left">&larr;</button><button id="abRight" aria-label="Pan right">&rarr;</button></span>
     <span class="zoom"><button id="abOut" aria-label="Zoom out">&minus;</button><button id="abIn" aria-label="Zoom in">+</button></span>
   </div>
-  <div class="key"><span><i class="sw" style="background:#B33A1A"></i>abacavir</span><span><i class="sw" style="background:#000000"></i>C-terminal anchor</span><span><i class="sw" style="background:#33332F"></i>peptide</span><span><i class="sw" style="background:#76766F"></i>contact shell</span><span><i class="sw" style="background:#B4B4AC"></i>HLA-B*57:01</span><span><i class="sw" style="background:#DEDED7"></i>&beta;2m</span></div>
+  <div class="key"><span><i class="sw" style="background:#B33A1A"></i>abacavir</span><span><i class="sw" style="background:#B33A1A"></i>C-terminal anchor</span><span><i class="sw" style="background:#1F5E58"></i>peptide</span><span><i class="sw" style="background:#8A8578"></i>contact shell</span><span><i class="sw" style="background:#5B6B82"></i>HLA-B*57:01</span><span><i class="sw" style="background:#C9C3B8"></i>&beta;2m</span></div>
   <p class="hint">Drag to rotate &middot; swipe sideways or press <kbd>&larr;</kbd><kbd>&rarr;</kbd> to pan &middot; pinch to zoom &middot; scrolling up and down moves the page</p>
   <p class="cap"><b>Figure 1.</b> PDB <b>3VRI</b>, 1.6 &#8491;, one complex in the asymmetric unit; ligand <b>1KX</b>, confirmed as abacavir (C<sub>14</sub>H<sub>18</sub>N<sub>6</sub>O). Chains A heavy, B &beta;2m, C peptide. The contact residues below were computed from these coordinates at a 4.5 &#8491; heavy-atom cutoff, not read off a figure. <b>Length mismatch:</b> this peptide is a 10-mer, while every peptide in the tier-1 data is a 9-mer. Deposited by Ostrov et al., <span class="m">10.1073/pnas.1207934109</span>.</p>
 
@@ -695,16 +695,16 @@ input,textarea{cursor:text}
     var p = ($('pep').value || 'NLVPMVATV').toUpperCase();
     if (p.length !== 9) p = 'NLVPMVATV';
     viewer.removeAllLabels(); viewer.removeAllSurfaces(); viewer.setStyle({}, {});
-    viewer.setStyle({ chain: 'H' }, { cartoon: { color: '#B4B4AC', opacity: .95 } });
-    viewer.setStyle({ chain: 'L' }, { cartoon: { color: '#DEDED7', opacity: .55 } });
-    viewer.setStyle({ chain: 'P' }, { stick: { color: '#33332F', radius: .19 } });
-    viewer.addStyle({ chain: 'P' }, { sphere: { color: '#33332F', radius: .24 } });
+    viewer.setStyle({ chain: 'H' }, { cartoon: { color: '#5B6B82', opacity: .9 } });
+    viewer.setStyle({ chain: 'L' }, { cartoon: { color: '#C9C3B8', opacity: .6 } });
+    viewer.setStyle({ chain: 'P' }, { stick: { color: '#1F5E58', radius: .19 } });
+    viewer.addStyle({ chain: 'P' }, { sphere: { color: '#1F5E58', radius: .24 } });
     if (showAnc) {
       viewer.addStyle({ chain: 'P', resi: [2, 9] }, { stick: { color: '#B33A1A', radius: .32 } });
       viewer.addStyle({ chain: 'P', resi: [2, 9] }, { sphere: { color: '#B33A1A', radius: .48 } });
     }
-    if (showTcr) viewer.setStyle({ chain: ['A', 'B'] }, { cartoon: { color: '#5A5A62', opacity: .9 } });
-    if (showSurf) viewer.addSurface($3Dmol.SurfaceType.MS, { opacity: .55, color: '#B4B4AC' }, GROOVE);
+    if (showTcr) viewer.setStyle({ chain: ['A', 'B'] }, { cartoon: { color: '#7A7340', opacity: .85 } });
+    if (showSurf) viewer.addSurface($3Dmol.SurfaceType.MS, { opacity: .5, color: '#5B6B82' }, GROOVE);
     if (showLab) {
       for (var i = 1; i <= 9; i++) {
         var anc = (i === 2 || i === 9);
@@ -1144,8 +1144,8 @@ input,textarea{cursor:text}
 
   function paint() {
     if (!viewer) return;
-    var HLA = "#B4B4AC", PEP = "#33332F", DRUG = "#B33A1A",
-        B2M = "#DEDED7", ANC = "#000000", SHELL = "#76766F", SURF = css("--surface");
+    var HLA = "#5B6B82", PEP = "#1F5E58", DRUG = "#B33A1A",
+        B2M = "#C9C3B8", ANC = "#B33A1A", SHELL = "#8A8578", SURF = css("--surface");
     viewer.removeAllLabels(); viewer.removeAllSurfaces(); viewer.setStyle({}, {});
     var faded = preset === "contact";
     viewer.setStyle({ chain:"A" }, { cartoon:{ color:HLA, opacity: faded ? 0.28 : 0.95 } });
