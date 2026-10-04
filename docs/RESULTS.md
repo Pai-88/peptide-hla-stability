@@ -9,6 +9,15 @@ This is a negative result and it is reported as one. Serova's brief says negativ
 results are as valuable as positive ones, and asks the question rather than for a
 proof; this is the answer the data gave.
 
+> **Note on `headline.png`.** That figure is referenced below but is deliberately
+> not in this repository. Its numbers come from an earlier pass, before the
+> un-pooled and fine-tuned ESM arms landed, so it shows every foundation-model arm
+> sitting below the peptide-mean lookup table. The later runs refuted that: ESM-2
+> un-pooled reaches 0.164 against the lookup table's 0.13. The figure's headline
+> claim, that a conventional network beat every foundation-model arm, still holds.
+> The live ranking is on the Predict tab at https://peptidehla.com and in
+> `results/RECONCILED_TABLE.csv`.
+
 Figure: `headline.png`. Everything in this file was recomputed from the stored
 per-row predictions under one estimator, by the write-up pass, not copied from
 the arms' own summaries.
