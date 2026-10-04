@@ -240,6 +240,18 @@ input,textarea{cursor:text}
 .teamline a.who{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--faint)}
 .teamline a.who:hover{border-bottom-color:var(--ink);background:var(--surface2)}
 .teamline a.who:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.cmp .r.sel{background:var(--t3bg);box-shadow:inset 3px 0 0 var(--drug);font-weight:600}
+.cmp .r.sel .rk,.cmp .r.sel .sp{color:var(--drug)}
+.pick{display:inline-block;margin-left:8px;font-family:var(--data);font-size:9px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--bg);background:var(--drug);
+  padding:2px 6px;vertical-align:1px;font-weight:500}
+/* and make the chosen card on the Models tab unmistakable too */
+.card[aria-pressed="true"]{border-color:var(--drug);box-shadow:inset 3px 0 0 var(--drug)}
+.card[aria-pressed="true"] .bar i{background:var(--drug)}
+.card[aria-pressed="true"] h3::after{content:"selected";margin-left:8px;font-family:var(--data);
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--bg);
+  background:var(--drug);padding:2px 6px;vertical-align:2px}
 </style>
 
 <div class="wrap">
@@ -643,12 +655,15 @@ input,textarea{cursor:text}
           .sort(function (x, y) { return y.a.score - x.a.score; })
           .forEach(function (e, rank) {
       var a = e.a, v = e.v, on = a.key === sel;
-      h += '<div class="r"><span' + (on ? ' style="color:var(--win)"' : '') + '>' +
+      // the picked model gets a class, not an inline colour: --win is near-black on
+      // this theme, so colouring the text made the selection invisible
+      h += '<div class="r' + (on ? ' sel' : '') + '"><span>' +
         '<span class="rk">' + (rank + 1) + '</span>' + a.name +
+        (on ? '<span class="pick">your model</span>' : '') +
         ' <span class="sp">&rho; ' + a.score.toFixed(3) + '</span>' +
-        '</span><span' + (on ? ' style="color:var(--win)"' : '') + '>' + v.toFixed(2) +
+        '</span><span>' + v.toFixed(2) +
         '</span><span class="track"><i style="width:' + (100 * v / mx).toFixed(1) +
-        '%;background:' + (on ? 'var(--win)' : 'var(--acc)') + '"></i></span></div>';
+        '%;background:' + (on ? 'var(--drug)' : 'var(--acc)') + '"></i></span></div>';
     });
     h += '</div>';
     // the nine positions, spelled out, with the two anchors marked
