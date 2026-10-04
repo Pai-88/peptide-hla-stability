@@ -6,7 +6,7 @@ eleven-plus configurations.
 
 Built for the Serova "drug and protein design" track at the
 **London AI x Science Hackathon**, 3 to 4 October 2026.
-Team **Fridaymerchants**: Paing Hein Htet, Radin Moradi, Sina Ahani, Andy Kaca.
+Team **Fridaymerchants**: Paing Hein Htet, Radin Moradi, Sina Ahani, Andy Kaça.
 
 Serova's brief asked whether protein foundation models are *useful* for this problem, not to
 prove that they are. We took that literally.
