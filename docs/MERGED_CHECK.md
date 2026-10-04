@@ -1,5 +1,11 @@
 # Supertype-merge robustness check
 
+> **Note.** This file was written inside the working tree and refers to `PITCH.md`,
+> `SUBMISSION.md` and `results_merged.csv`, none of which are in this repository: the first
+> two are internal run-sheets and the third is an intermediate superseded by the tables in
+> `results/`. The checks recorded below stand on their own; the references do not resolve.
+
+
 **ADDITIONAL analysis. It replaces nothing.** The 21-fold structure in `RESULTS.md`,
 `PITCH.md` and `SUBMISSION.md` stands as the headline. This file asks one question:
 *if two groups of our folds are really one supertype each, does the conclusion survive

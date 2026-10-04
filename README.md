@@ -42,8 +42,10 @@ correctly **61.5%** of the time. Off-the-shelf ESM-2 manages **54.1%**. A coin i
 
 Spearman can be aggregated several ways and the numbers differ, so we fix one and say so.
 Every figure above is **per-fold mean, then median across folds**.
-`results/RECONCILED_TABLE.csv` carries the same arms under the alternative convention
-(median over all cells) so the two can be compared directly. Mixing them was the single
+`results/RECONCILED_TABLE.csv` gives both conventions side by side for the ESM-2 and control
+arms, so they can be compared directly. The three later encoder families (ESM-C, ProtT5, SaProt)
+landed after that table was built and are reported in `results/results_I_summary.csv` and on the
+live site instead. Mixing them was the single
 easiest way to produce a misleading table, and it caught us more than once.
 
 ---
@@ -58,8 +60,9 @@ supertypes from the measured data, which is the check that the clustering is doi
 
 **Censoring.** 5,679 of 28,166 measurements (20.2%) sit at exactly 0 h, meaning the complex
 dissociated faster than the assay could resolve. These are left-censored, not zeros. Headline
-numbers use `censored='tied'`; every table is also reported under `censored='drop'`, and the
-ranking does not change.
+numbers use `censored='tied'`. The headline arms are also scored under `censored='drop'`
+(`results/results_M_per_fold_drop.csv`, against `results_M_per_fold_tied.csv`) and the ranking
+does not change; the per-arm sweeps are reported under `tied` only.
 
 ---
 
@@ -67,8 +70,11 @@ ranking does not change.
 
 1. **Features.** Swapping the conventional features for ESM embeddings under a matched tuned
    head loses most of the signal (p = 1.00 for the foundation-model advantage).
-2. **Predictions.** Ensembling the conventional net with the foundation-model arms made it
-   *worse*, 0.307 to 0.217. They are not contributing independent signal.
+2. **Predictions.** Rank-averaging the conventional net with the strongest foundation-model
+   arm makes it *worse*, **0.307 to 0.257** (the arm alone is 0.207). They are not contributing
+   independent signal. All three figures are 5-seed ensembles, a different convention from the
+   table above; reproduce with `python src/blend_check.py`, which writes
+   `results/blend_conventional_plus_esm.csv`.
 3. **Controls.** Off-the-shelf ESM-2 is statistically indistinguishable from a control that is
    never told which allele it is predicting for.
 
@@ -139,6 +145,18 @@ Every DOI in [CITATIONS.md](CITATIONS.md) was resolved against Crossref and the 
 first author and year compared against what we were calling it. That check caught one wrong
 first author in our own draft. References that failed to resolve are listed separately and are
 cited nowhere.
+
+## What is where
+
+| | |
+|---|---|
+| `src/` | every script that produced a number. `data.py` loads, `splits.py` builds the folds, `metrics.py` scores, `run_experiment.py` runs the arms |
+| `results/` | the headline tables, including both estimator conventions and both censoring policies |
+| `figures/` | `headline.png` is the ladder; `diagnose_why_*.png` are the diagnostics behind section 3 |
+| `site/` | the live page, deployed to peptidehla.com by GitHub Actions |
+| `docs/RESULTS.md` | the full write-up and audit trail from the 3 Oct pass, with its corrections marked |
+| `docs/BASELINE.md` | what the external comparators are and why NetMHCstabpan is not one |
+| `CITATIONS.md` | every DOI, each resolved against Crossref, plus what we chose not to cite |
 
 ## Licence
 
