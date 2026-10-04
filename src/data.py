@@ -7,7 +7,10 @@ Source: https://services.healthtech.dtu.dk/suppl/immunology/NetMHCstabpan-1.0/St
 import numpy as np
 import pandas as pd
 
-PATH = "stability.txt"
+import os as _os
+# resolve against the repo root, so the documented commands work from anywhere
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+PATH = _os.path.join(_ROOT, "data", "stability.txt")
 
 # 5,679 rows (20.2%) sit at exactly 0.0 h. That is not a measurement of zero,
 # it is "dissociated faster than the assay could resolve". Left-censored.

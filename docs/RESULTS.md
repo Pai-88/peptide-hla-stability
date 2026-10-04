@@ -2,8 +2,15 @@
 
 **Short answer: no, not on this problem, not at this scale, and not by any measure
 we could construct.** A conventional supervised network with no foundation model
-anywhere in it is roughly three times better, and every ESM-2 arm we built fails
-to beat a three-line lookup table that contains no model and never sees the allele.
+anywhere in it is roughly three times better than the best foundation-model arm.
+
+> **Correction, 4 Oct.** The sentence that used to stand here said every ESM-2 arm
+> fails to beat a three-line lookup table. That was true when this document was
+> written and is now **false**: the un-pooled and fine-tuned arms, which landed
+> later, both beat it. The surviving narrower claim is that *off-the-shelf
+> mean-pooled* ESM-2 loses to the lookup table. This file is kept as the record of
+> the 3 Oct pass; where it disagrees with README.md, the live site, or
+> `figures/headline.png`, those are current and this is not.
 
 This is a negative result and it is reported as one. Serova's brief says negative
 results are as valuable as positive ones, and asks the question rather than for a

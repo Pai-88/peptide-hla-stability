@@ -8,3 +8,4 @@ sentencepiece>=0.2.2
 matplotlib>=3.11.2
 requests>=2.34.2
 tqdm>=4.70.1
+pyarrow>=15.0      # run_experiment.py caches predictions as parquet

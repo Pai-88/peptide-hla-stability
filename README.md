@@ -11,7 +11,7 @@ Team **Fridaymerchants**: Paing Hein Htet, Radin Moradi, Sina Ahani, Andy Kaça.
 Serova's brief asked whether protein foundation models are *useful* for this problem, not to
 prove that they are. We took that literally.
 
-**Live site: https://paingheinhtet.com/peptide-hla-stability/**  
+**Live site: https://peptidehla.com**  
 Ten models, a per-allele peptide lookup against the measured value, interactive 3D
 structures, the anchor-optimisation scan, and a tiered abacavir / HLA-B\*57:01 case study.
 

@@ -28,7 +28,9 @@ from scipy.spatial.distance import squareform
 
 import data
 
-ALLELES = "alleles.json"
+import os as _os
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+ALLELES = _os.path.join(_ROOT, "site", "alleles.json")
 DEFAULT_CUT = 0.80
 
 
