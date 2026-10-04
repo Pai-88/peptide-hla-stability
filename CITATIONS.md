@@ -27,8 +27,14 @@ The first author is **Atkins**. It was wrong in `brief.html` and is now correcte
 
 ## Also credit in the repo
 
-GDM Science Skills (Apache-2.0). UniProt reviewed proteomes, for the epitope source mapping.
-Modal, Anthropic, Hugging Face and Amass credits where their tooling was used.
+UniProt reviewed proteomes, for the epitope source mapping. Hugging Face Hub for every
+model weight and Hugging Face Jobs for the GPU runs. Anthropic Claude, used throughout.
+Amass for literature search. 3Dmol.js for the structure viewers, RCSB PDB for coordinates,
+Crossref for DOI verification.
+
+Not used, and therefore not claimed: **Modal** (an account was created and `src/modal_embed.py`
+was written, but no job ever ran; every embedding in this repo came from Hugging Face Jobs via
+`src/hf_gpu_embed.py`) and **GDM Science Skills** (evaluated, never installed or imported).
 
 ## Rule for tomorrow
 
