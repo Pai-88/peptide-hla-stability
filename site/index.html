@@ -220,6 +220,22 @@ input,textarea{cursor:text}
   font-size:11px;color:var(--dim)}
 .key span{display:inline-flex;align-items:center;gap:6px}
 .key .sw{width:11px;height:11px;flex:none;border:1px solid rgba(0,0,0,.2)}
+
+.rk{display:inline-block;min-width:20px;font-family:var(--data);font-size:11px;color:var(--faint)}
+.sp{font-family:var(--data);font-size:11px;color:var(--faint)}
+.pos{margin-top:20px}
+.poslab{font-family:var(--data);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:9px}
+.posrow{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line)}
+.pbox{background:var(--surface);display:grid;justify-items:center;gap:2px;padding:9px 2px}
+.pbox.anc{background:var(--t3bg)}
+.pn{font-family:var(--data);font-size:10px;color:var(--faint)}
+.pa{font-family:var(--data);font-size:19px;font-weight:600;color:var(--ink);line-height:1.1}
+.pbox.anc .pa{color:var(--drug)}
+.pr{font-family:var(--data);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.pbox.anc .pr{color:var(--drug)}
+.posnote{font-size:12.5px;color:var(--dim);margin:10px 0 0}
 </style>
 
 <div class="wrap">
@@ -614,17 +630,34 @@ input,textarea{cursor:text}
       meas.toFixed(2) + ' h</strong>. ' +
       (pred > meas ? 'Over' : 'Under') + ' by ' + Math.abs(pred - meas).toFixed(2) + ' h.</p>';
 
-    h += '<div class="cmp"><div class="r hd"><span>every model</span><span>hours</span><span></span></div>';
+    h += '<div class="cmp"><div class="r hd"><span>every model, best first</span><span>hours</span><span></span></div>';
     h += '<div class="r"><span style="color:var(--ink)">MEASURED &middot; ground truth</span><span style="color:var(--ink)">' +
       meas.toFixed(2) + '</span><span class="track"><i style="width:' + (100 * meas / mx).toFixed(1) + '%;background:var(--ink)"></i></span></div>';
-    D.arms.forEach(function (a, i) {
-      var v = row[3 + i], on = a.key === sel;
-      h += '<div class="r"><span' + (on ? ' style="color:var(--win)"' : '') + '>' + a.name +
+    // ranked by held-out Spearman, best model first, so the ordering is the
+    // models' overall skill and not the order they happened to be run in
+    D.arms.map(function (a, i) { return { a: a, v: row[3 + i] }; })
+          .sort(function (x, y) { return y.a.score - x.a.score; })
+          .forEach(function (e, rank) {
+      var a = e.a, v = e.v, on = a.key === sel;
+      h += '<div class="r"><span' + (on ? ' style="color:var(--win)"' : '') + '>' +
+        '<span class="rk">' + (rank + 1) + '</span>' + a.name +
+        ' <span class="sp">&rho; ' + a.score.toFixed(3) + '</span>' +
         '</span><span' + (on ? ' style="color:var(--win)"' : '') + '>' + v.toFixed(2) +
         '</span><span class="track"><i style="width:' + (100 * v / mx).toFixed(1) +
         '%;background:' + (on ? 'var(--win)' : 'var(--acc)') + '"></i></span></div>';
     });
-    h += '</div></div>';
+    h += '</div>';
+    // the nine positions, spelled out, with the two anchors marked
+    h += '<div class="pos"><div class="poslab">the peptide, position by position</div><div class="posrow">';
+    for (var k = 0; k < 9; k++) {
+      var anc = (k === 1 || k === 8);
+      h += '<div class="pbox' + (anc ? ' anc' : '') + '">' +
+           '<span class="pn">P' + (k + 1) + '</span>' +
+           '<span class="pa">' + p[k] + '</span>' +
+           '<span class="pr">' + (anc ? 'anchor' : 'TCR') + '</span></div>';
+    }
+    h += '</div><p class="posnote">P2 and P9 drop into pockets in the floor of the groove and do most of the gripping. P1 and P3 to P8 face upward, and that surface is what a T cell reads.</p></div>';
+    h += '</div>';
     $('out').innerHTML = h;
     $('structcap').textContent = p + ' mapped onto the groove. Positions 2 and 9 are the anchors.';
     if (loaded) paint();
@@ -666,7 +699,7 @@ input,textarea{cursor:text}
       viewer.addStyle({ chain: 'P', resi: [2, 9] }, { stick: { color: '#B33A1A', radius: .32 } });
       viewer.addStyle({ chain: 'P', resi: [2, 9] }, { sphere: { color: '#B33A1A', radius: .48 } });
     }
-    if (showTcr) viewer.setStyle({ chain: 'A,B' }, { cartoon: { color: '#76766F', opacity: .55 } });
+    if (showTcr) viewer.setStyle({ chain: ['A', 'B'] }, { cartoon: { color: '#5A5A62', opacity: .9 } });
     if (showSurf) viewer.addSurface($3Dmol.SurfaceType.MS, { opacity: .55, color: '#B4B4AC' }, GROOVE);
     if (showLab) {
       for (var i = 1; i <= 9; i++) {
