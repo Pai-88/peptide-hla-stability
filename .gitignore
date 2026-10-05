@@ -19,3 +19,6 @@ baseline_cache/
 
 *.log
 .DS_Store
+
+# prediction caches, regenerable
+*.npz

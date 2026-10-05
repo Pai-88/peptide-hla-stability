@@ -1,4 +1,10 @@
+<!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Do protein foundation models help predict peptide-HLA class I stability on binding grooves they have never seen? No: a conventional supervised net beats every language-model arm across three encoder families.">
+<meta property="og:title" content="Unseen Alleles — peptide-HLA class I stability">
+<meta property="og:description" content="A conventional supervised net beats every protein-language-model arm on held-out HLA grooves. 21 leave-one-groove-cluster-out folds.">
+<meta property="og:url" content="https://peptidehla.com">
 <title>Stability Explorer</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <style>
@@ -252,6 +258,9 @@ input,textarea{cursor:text}
 .card[aria-pressed="true"] h3::after{content:"selected";margin-left:8px;font-family:var(--data);
   font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--bg);
   background:var(--drug);padding:2px 6px;vertical-align:2px}
+.repo{font-family:var(--data);font-size:13px;text-align:center;margin:0 0 26px;color:var(--dim)}
+.repo a{color:var(--ink);border-bottom:1px solid var(--faint);text-decoration:none}
+.repo a:hover{border-bottom-color:var(--ink)}
 </style>
 
 <div class="wrap">
@@ -532,6 +541,7 @@ input,textarea{cursor:text}
 
 <footer class="sponsors">
 <hr class="hrule">
+<p class="repo"><a href="https://github.com/Pai-88/peptide-hla-stability" target="_blank" rel="noopener noreferrer">github.com/Pai-88/peptide-hla-stability</a> &middot; code, data and the full audit trail</p>
 <p class="slabel">Sponsors of the event</p>
 <div class="sgrid">
     <div class="scell"><img src="logos/hugging-face.png" alt="Hugging Face" loading="lazy"><span class="nm">Hugging Face</span></div>
